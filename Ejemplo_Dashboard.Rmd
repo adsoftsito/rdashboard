@@ -1,0 +1,125 @@
+---
+title: "Sales Report with plotly"
+author: "Jesus Aguilar"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    social: menu
+    source_code: embed
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(highcharter)
+library(flexdashboard)
+library(htmltab)
+library(plotly)
+library(rjson)
+
+thm <- 
+  hc_theme(
+    colors = c("#1a6ecc", "#434348", "#90ed7d"),
+    chart = list(
+      backgroundColor = "transparent",
+      style = list(fontFamily = "Source Sans Pro")
+    ),
+    xAxis = list(
+      gridLineWidth = 1
+    )
+  )
+
+```
+
+Column {data-width=600}
+-----------------------------------------------------------------------
+
+### Sales Forecast
+
+```{r}
+df = read.csv('https://raw.githubusercontent.com/plotly/datasets/718417069ead87650b90472464c7565dc8c2cb1c/coffee-flavors.csv')
+
+fig <- plot_ly()
+
+fig <- fig %>% add_trace(
+  type='sunburst',
+  ids=df$ids,
+  labels=df$labels,
+  parents=df$parents,
+  domain=list(column=1),
+  maxdepth=2,
+  insidetextorientation='radial'
+)
+fig
+```
+
+### Sales by State
+
+```{r}
+#Cargar GeoJSon
+url <- 'https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/california-counties.geojson'
+counties <- rjson::fromJSON(file=url)
+
+#Carga tabla de wikipedia
+df <- htmltab("https://en.wikipedia.org/wiki/California_unemployment_statistics",2)
+df$`Unemp. rate (%)` <- as.numeric(df$`Unemp. rate (%)`)
+
+
+g <- list(
+  visible = FALSE,
+  fitbounds = 'locations'
+)
+
+
+fig <- plot_ly()
+
+fig <- fig %>% add_trace(
+  type="choropleth",
+  geojson=counties,
+  locations=df$County,
+  z=df$`Unemp. rate (%)`,
+  colorscale="Viridis",
+  zmin=0,
+  zmax=ceiling(max(df$`Unemp. rate (%)`)),
+  marker=list(line=list(width=0)),
+  featureidkey = 'properties.name'
+)
+
+fig <- fig %>% colorbar(title = "Unemployment Rate (%)")
+fig <- fig %>% layout( title = "2014 California Unemployment by County")
+
+fig <- fig %>% layout(geo = g )
+
+fig
+```
+
+Column {.tabset data-width=400}
+-----------------------------------------------------------------------
+
+### Sales by Category
+
+```{r, fig.keep='none'}
+trace_0 <- rnorm(100, mean = 5)
+trace_1 <- rnorm(100, mean = 0)
+trace_2 <- rnorm(100, mean = -5)
+x <- c(1:100)
+
+data <- data.frame(x, trace_0, trace_1, trace_2)
+
+fig <- plot_ly(data, x = ~x, y = ~trace_0, name = 'trace 0', type = 'scatter', mode = 'lines') 
+fig <- fig %>% add_trace(y = ~trace_1, name = 'trace 1', mode = 'lines+markers') 
+fig <- fig %>% add_trace(y = ~trace_2, name = 'trace 2', mode = 'markers')
+
+fig
+```
+
+### Best Sellers
+
+```{r}
+fig <- plot_ly(
+  type="treemap",
+  labels=c("Eve", "Cain", "Seth", "Enos", "Noam", "Abel", "Awan", "Enoch", "Azura"),
+  parents=c("", "Eve", "Eve", "Seth", "Seth", "Eve", "Eve", "Awan", "Eve")
+)
+fig
+  
+```
